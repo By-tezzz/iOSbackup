@@ -13,8 +13,17 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/avibrazil/iOSbackup",
-    install_requires=['NSKeyedUnArchiver','pycryptodome'],
+    install_requires=[
+        'NSKeyedUnArchiver',
+        'pycryptodome',
+        'pymobiledevice3',
+    ],
     packages=setuptools.find_packages(),
+    entry_points={
+        "console_scripts": [
+            "ios-backup-extractor=ios_backup_extractor.cli:main",
+        ],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
@@ -39,5 +48,5 @@ setuptools.setup(
         "Topic :: System :: Archiving :: Backup",
         "Topic :: System :: Recovery Tools"
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.9',
 )
