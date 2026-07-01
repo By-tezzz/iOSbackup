@@ -9,8 +9,9 @@ The existing project already handles local iTunes/Finder-style backup parsing, i
 - a `pymobiledevice3` acquisition command wrapper,
 - a stable backup adapter for plugins,
 - a plugin discovery and execution system,
+- reusable SQLite and plist parser utilities,
 - JSON reporting,
-- initial artifact plugins for KnowledgeC, device messages, call history, and Biome candidates.
+- initial artifact plugins for KnowledgeC, device messages, call history, Biome candidates, and plist artifacts.
 
 ## CLI
 
@@ -39,6 +40,38 @@ ios-backup-extractor run \
   --password '<BACKUP_PASSWORD>'
 ```
 
+## Parser utilities
+
+### SQLite
+
+`ios_backup_extractor.parsers.SQLiteParser` provides:
+
+- read-only SQLite connections,
+- table discovery,
+- schema inspection,
+- safe table export to JSON and CSV,
+- SELECT-only query helper,
+- byte normalization to hexadecimal strings.
+
+Artifact-specific helpers currently include:
+
+- `parse_call_history()`
+- `parse_messages()`
+- `parse_knowledgec()`
+
+These helpers export raw tables and create best-effort normalized JSON outputs when the expected tables exist.
+
+### Plist
+
+`ios_backup_extractor.parsers.PlistParser` provides:
+
+- XML and binary plist parsing through `plistlib`,
+- normalized JSON export,
+- ISO-formatted date values,
+- hexadecimal byte values.
+
+The `plists` plugin extracts plist candidates and writes parsed JSON copies under plugin output.
+
 ## Plugin contract
 
 Each plugin exposes a `Plugin` class with:
@@ -60,8 +93,8 @@ Plugins return `PluginResult` objects so future report writers can consume the s
 
 - ALEAPP/iLEAPP handoff
 - MVT handoff
-- SQLite table extraction and timeline normalization
-- gzip/plist/NSKeyedArchive helpers
+- SQLite timeline normalization
+- gzip/NSKeyedArchive helpers
 - WAL and freelist recovery modules
 - richer Biome decoders
 - case metadata and chain-of-custody report fields
