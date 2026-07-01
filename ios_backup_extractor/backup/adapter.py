@@ -8,8 +8,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import sqlite3
 from typing import Any, Iterable, Optional
 
+import NSKeyedUnArchiver
 from iOSbackup import iOSbackup
 
 
@@ -109,17 +111,43 @@ class IOSBackupAdapter:
         output_path = Path(output_dir).expanduser().resolve()
         output_path.mkdir(parents=True, exist_ok=True)
         kwargs: dict[str, Any] = {
-            "relativePath": relative_path,
             "targetFolder": str(output_path),
         }
-        if domain:
-            kwargs["domain"] = domain
         if output_name:
             kwargs["targetName"] = output_name
+
+        if domain:
+            manifest_entry = self._get_manifest_entry(relative_path=relative_path, domain=domain)
+            if manifest_entry is None:
+                return None
+            kwargs["manifestEntry"] = manifest_entry
+        else:
+            kwargs["relativePath"] = relative_path
 
         result = self._backup.getFileDecryptedCopy(**kwargs)
         decrypted = result.get("decryptedFilePath") if result else None
         return Path(decrypted) if decrypted else None
+
+    def _get_manifest_entry(self, *, relative_path: str, domain: str) -> dict[str, Any] | None:
+        """Fetch an exact Manifest.db row by relative path and domain."""
+
+        catalog = sqlite3.connect(self._backup.manifestDB)
+        catalog.row_factory = sqlite3.Row
+        try:
+            row = catalog.cursor().execute(
+                "SELECT * FROM Files WHERE relativePath=? AND domain=? ORDER BY domain LIMIT 1",
+                (relative_path, domain),
+            ).fetchone()
+        finally:
+            catalog.close()
+
+        if row is None:
+            return None
+
+        payload = dict(row)
+        payload["manifest"] = NSKeyedUnArchiver.unserializeNSKeyedArchiver(payload["file"])
+        del payload["file"]
+        return payload
 
     def close(self) -> None:
         self._backup.close()
